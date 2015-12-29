@@ -7,16 +7,24 @@
             [devcards.core :as dc :refer-macros [defcard defcard-doc]]
             ))
 
-(defui Widget
-  Object
-  (render [this]
-    (dom/div nil "Hello world")))
+(enable-console-print!)
 
 (defui WidgetWithHook
   Object
-  (componentWillUpdate [this nextprops nextstate] (println "Component will update"))
+  (componentWillUpdate [this nextprops nextstate]
+    (println "Component will update"))
+  (componentWillMount [this]
+    (println "Component will mount"))
   (render [this]
-    (dom/div nil "Hello world")))
+    (let [{:keys [var]} (om/props this)]
+      (dom/div nil (str "Hello " var)))))
+
+(def widget-with-hook (om/factory WidgetWithHook))
+
+(defui Widget
+  Object
+  (render [this]
+    (widget-with-hook {:var "hi"})))
 
 (def widget (om/factory Widget))
 
@@ -147,7 +155,11 @@
   and also try playing with editing/adding to the DOM.
   ")
 
-(defcard root-render (root {:number 52 :people [{:name "Sam"} {:name "Joe"}]}))
+(defcard root-render (root {:number 42
+                            :people [
+                              {:name "Sam"}
+                              {:name "Joe"}
+                              {:name "Masiak"}]}))
 
 (defui Root-computed
   Object
@@ -163,6 +175,15 @@
         (people-list people)))))
 
 (def root-computed (om/factory Root-computed))
+
+(defcard root-computedsss
+  (root-computed {:number 13
+                  :b false
+                  :people [
+                    {:name "Masiak"}
+                    {:name "Beata"}
+                    {:name "Hohoho"}]
+                  }))
 
 (defcard-doc
   "
@@ -205,7 +226,7 @@
                          :boolHandler (fn [] (swap! data-atom-from-devcards update-in [:b] not))}
           ]
       (root-computed (om/computed prop-data sideband-data))))
-  {:number 42 :people [{:name "Sally"}] :b false}
+  {:number 42 :people [{:name "Sally"} {:name "boo"}] :b false}
   {:inspect-data true
    :history      true})
 

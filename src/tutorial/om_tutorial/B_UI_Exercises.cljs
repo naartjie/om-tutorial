@@ -70,21 +70,28 @@
 
 (defui Person
   Object
-  (initLocalState [this] {})                                ;; TODO (ex 3): Add initial local state here
-
+  (initLocalState [this] {:checked false})
   (render [this]
     ; TODO: (ex 4) obtain the 'computed' onDelete handler
-    (let [name "name"                                       ;; TODO (ex 1): Get the Om properties from this
-          mate nil
-          checked false]                                    ;; TODO (ex 3): component local state
+
+    (let [props (om/props this)
+          {:keys [person/name person/mate]} props
+          checked (om/get-state this :checked)
+          bold-when-checked #js {:font-weight (if checked "bold")}
+          {:keys [delete-person]} (om/get-computed this)
+          my-fn (fn []
+                  (print "hi")
+                  (js/console.log "here too")
+                  (om/set-state! this {:checked (not checked)}))]
+
       (dom/li nil
         (dom/input #js {:type    "checkbox"
-                        :onClick (fn [e] (println "TODO ex 3"))
-                        :checked false                      ; TODO: ex-3: modify local state
+                        :onClick my-fn
+                        :checked checked                      ; TODO: ex-3: modify local state
                         })
-        (dom/span nil name)                                 ; TODO: ex 3. Make name bold when checked
-        (dom/button nil "X")                                ; TODO: (ex 4) call onDelete handler, if present
-        (when mate (dom/ul nil (om-person mate)))))))
+        (dom/span #js {:style bold-when-checked} name)                                 ; TODO: ex 3. Make name bold when checked
+        (dom/button #js {:onClick (fn [e] (if delete-person (delete-person this)))} "X")                                ; TODO: (ex 4) call onDelete handler, if present
+        (when mate (dom/ul nil (om-person (om/computed mate {:delete-person (fn [] (delete-person mate))}))))))))
 
 (def om-person (om/factory Person))
 
@@ -107,30 +114,29 @@
 (defui PeopleWidget
   Object
   (render [this]
-    ; TODO: (ex 4): Create a deletePerson function
-    (let [people []]                                        ; TODO (ex 2): Get yo stuff
+    (let [{:keys [people]} (om/props this)
+          delete-person (fn [person]
+                         (print (str "delete " person))
+                         (js/console.log "delete" person))]
       (dom/div nil
         (if (= nil people)
           (dom/span nil "Loading...")
           (dom/div nil
             (dom/button #js {} "Save")
             (dom/button #js {} "Refresh List")
-            ; TODO: (ex 4) pass deletePerson as the onDelete handler to person element
-            (dom/ul nil (map #(om-person %) people))))))))
+            (dom/ul nil (map (fn [person] (om-person (om/computed person {:delete-person delete-person}))) people))))))))
 
 (def people-widget (om/factory PeopleWidget))
 
 (defui Root
   Object
   (render [this]
-    (let [widget nil
-          new-person nil
-          last-error nil]                                   ; TODO (ex 2): Get yo stuff
+    (let [{:keys [widget new-person last-error]} (om/props this)]
       (dom/div nil
-        (dom/div nil (when (not= "" last-error) (str "Error " last-error)))
+        (dom/div nil (when (not= "" last-error) (str "Errors " last-error)))
         (dom/div nil
           (people-widget widget)
-          (dom/input #js {:type "text"})
+          (dom/input #js {:type "text" :defaultValue new-person})
           (dom/button #js {} "Add Person"))))))
 
 (def om-root (om/factory Root))
@@ -215,10 +221,10 @@
   "
   (fn [state-atom _]
     (om-root @state-atom))
-  {:last-error ""
-   :new-person ""
+  {:last-error "1234"
+   :new-person "new p"
    :widget     {:people [
-                         {:db/id 1 :person/name "Joe" :person/mate {:db/id 2 :person/name "Sally"}}
+                         {:db/id 1 :person/name "Joes" :person/mate {:db/id 2 :person/name "Sally"}}
                          {:db/id 2 :person/name "Sally" :person/mate {:db/id 1 :person/name "Joe"}}]}}
   {:inspect-data true})
 
